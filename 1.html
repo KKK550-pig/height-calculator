@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>孩子身高预测 - 直播间贴片</title>
+    <style>
+        /* 基础样式，适配直播间贴片尺寸 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft Yahei", sans-serif;
+        }
+        .height-calculator {
+            width: 320px; /* 贴片宽度，可根据直播间需求调整 */
+            padding: 20px;
+            background: linear-gradient(135deg, #f6f9fc 0%, #eef2f5 100%);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 1px solid #e1e8ed;
+        }
+        .title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+        input {
+            width: 100%;
+            height: 40px;
+            padding: 0 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            outline: none;
+        }
+        input:focus {
+            border-color: #409eff;
+        }
+        .gender-select {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0 20px;
+        }
+        .gender-btn {
+            flex: 1;
+            height: 40px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .gender-btn.active {
+            background: #409eff;
+            color: #fff;
+            border-color: #409eff;
+        }
+        .calculate-btn {
+            width: 100%;
+            height: 44px;
+            background: #409eff;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .calculate-btn:hover {
+            background: #337ecc;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff;
+            border-radius: 6px;
+            text-align: center;
+            display: none;
+        }
+        .result-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .result-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #409eff;
+        }
+        .tips {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #999;
+        }
+        .error {
+            color: #f56c6c;
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="height-calculator">
+        <div class="title">孩子成年身高预测</div>
+        
+        <div class="input-group">
+            <label for="fatherHeight">父亲身高 (cm)</label>
+            <input type="number" id="fatherHeight" placeholder="请输入父亲身高">
+            <div class="error" id="fatherError">请输入有效的身高（100-250cm）</div>
+        </div>
+        
+        <div class="input-group">
+            <label for="motherHeight">母亲身高 (cm)</label>
+            <input type="number" id="motherHeight" placeholder="请输入母亲身高">
+            <div class="error" id="motherError">请输入有效的身高（100-250cm）</div>
+        </div>
+        
+        <div class="gender-select">
+            <button class="gender-btn active" data-gender="boy">男孩</button>
+            <button class="gender-btn" data-gender="girl">女孩</button>
+        </div>
+        
+        <button class="calculate-btn" id="calculateBtn">立即预测</button>
+        
+        <div class="result" id="resultBox">
+            <div class="result-title">预测成年身高</div>
+            <div class="result-value" id="resultValue">175 ± 5 cm</div>
+            <div class="tips">注：此结果为遗传预测值，身高还受营养、运动等因素影响</div>
+        </div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const fatherInput = document.getElementById('fatherHeight');
+        const motherInput = document.getElementById('motherHeight');
+        const genderBtns = document.querySelectorAll('.gender-btn');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const resultBox = document.getElementById('resultBox');
+        const resultValue = document.getElementById('resultValue');
+        const fatherError = document.getElementById('fatherError');
+        const motherError = document.getElementById('motherError');
+
+        let selectedGender = 'boy'; // 默认选择男孩
+
+        // 性别选择
+        genderBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                genderBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedGender = btn.dataset.gender;
+            });
+        });
+
+        // 验证身高输入
+        function validateHeight(height, errorEle) {
+            if (!height || isNaN(height) || height < 100 || height > 250) {
+                errorEle.style.display = 'block';
+                return false;
+            }
+            errorEle.style.display = 'none';
+            return true;
+        }
+
+        // 计算身高
+        function calculateChildHeight(fatherH, motherH, gender) {
+            let baseHeight;
+            if (gender === 'boy') {
+                baseHeight = (fatherH + motherH + 13) / 2;
+            } else {
+                baseHeight = (fatherH + motherH - 13) / 2;
+            }
+            // 保留1位小数，符合视觉展示习惯
+            return baseHeight.toFixed(1);
+        }
+
+        // 点击计算按钮
+        calculateBtn.addEventListener('click', () => {
+            const fatherH = parseFloat(fatherInput.value);
+            const motherH = parseFloat(motherInput.value);
+
+            // 验证输入
+            const isFatherValid = validateHeight(fatherH, fatherError);
+            const isMotherValid = validateHeight(motherH, motherError);
+
+            if (!isFatherValid || !isMotherValid) {
+                return;
+            }
+
+            // 计算并展示结果
+            const predictedHeight = calculateChildHeight(fatherH, motherH, selectedGender);
+            resultValue.textContent = `${predictedHeight} ± 5 cm`;
+            resultBox.style.display = 'block';
+            
+            // 滚动到结果区域（适配小屏）
+            resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+
+        // 输入框回车触发计算
+        [fatherInput, motherInput].forEach(input => {
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    calculateBtn.click();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
